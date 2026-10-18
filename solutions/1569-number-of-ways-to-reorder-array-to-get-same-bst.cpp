@@ -1,26 +1,46 @@
 class Solution {
     static constexpr long long MOD = 1000000007;
-    vector<vector<long long>> choose;
-    long long countWays(const vector<int>& values) {
-        if (values.size() <= 2) return 1;
-        vector<int> left, right;
-        for (int i = 1; i < (int)values.size(); ++i) {
-            if (values[i] < values[0]) left.push_back(values[i]);
-            else right.push_back(values[i]);
+    long long power(long long base, long long exponent) {
+        long long result = 1;
+        while (exponent) {
+            if (exponent & 1) result = result * base % MOD;
+            base = base * base % MOD;
+            exponent >>= 1;
         }
-        long long ways = choose[values.size() - 1][left.size()];
-        ways = ways * countWays(left) % MOD;
-        return ways * countWays(right) % MOD;
+        return result;
     }
 public:
     int numOfWays(vector<int>& nums) {
         int n = nums.size();
-        choose.assign(n + 1, vector<long long>(n + 1));
-        for (int i = 0; i <= n; ++i) {
-            choose[i][0] = choose[i][i] = 1;
-            for (int j = 1; j < i; ++j)
-                choose[i][j] = (choose[i-1][j-1] + choose[i-1][j]) % MOD;
+        vector<int> position(n + 1), parent(n + 1), size(n + 1, 1), stack;
+        stack.reserve(n);
+        for (int i = 0; i < n; ++i) position[nums[i]] = i;
+
+        // The insertion BST is the min Cartesian tree of insertion positions
+        // in key order: keys are the inorder traversal, earliest key is root.
+        for (int key = 1; key <= n; ++key) {
+            int last = 0;
+            while (!stack.empty() && position[stack.back()] > position[key]) {
+                last = stack.back();
+                stack.pop_back();
+            }
+            if (!stack.empty()) parent[key] = stack.back();
+            if (last) parent[last] = key;
+            stack.push_back(key);
         }
-        return (countWays(nums) + MOD - 1) % MOD;
+
+        // Parents were inserted earlier, so reverse insertion order is
+        // sufficient to aggregate every child's subtree size first.
+        for (int i = n - 1; i > 0; --i)
+            size[parent[nums[i]]] += size[nums[i]];
+
+        long long factorial = 1, divisor = 1;
+        for (int key = 1; key <= n; ++key) {
+            factorial = factorial * key % MOD;
+            divisor = divisor * size[key] % MOD;
+        }
+        // The number of parent-before-descendant orders is n! / product(size).
+        long long ways = factorial * power(divisor, MOD - 2) % MOD;
+        return (ways + MOD - 1) % MOD;
     }
 };
