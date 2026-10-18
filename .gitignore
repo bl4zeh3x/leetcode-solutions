@@ -1,0 +1,7 @@
+*.o
+*.out
+*.exe
+a.out
+__pycache__/
+*.py[cod]
+.DS_Store
